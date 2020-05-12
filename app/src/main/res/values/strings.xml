@@ -1,8 +1,9 @@
 <resources>
     <string name="app_name">InstaFire</string>
-    <!---
-    <string name="facebook_app_id">592638904497102</string>
-    <string name="fb_login_protocol_scheme">fb592638904497102</string> -->
+    <!--Login Facebook-->
+    <string name="facebook_app_id">276383113731665</string>
+    <string name="fb_login_protocol_scheme">fb276383113731665</string>
+
 
     <!-- Sign In -->
     <string name="email">Email</string>

@@ -1,18 +1,34 @@
 package com.getstarted.instafire
 
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
+import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Base64
+import android.util.Log
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.FragmentActivity
+import com.facebook.AccessToken
+import com.facebook.CallbackManager
+import com.facebook.FacebookCallback
+import com.facebook.FacebookException
+import com.facebook.login.LoginManager
+import com.facebook.login.LoginResult
 import com.google.android.gms.auth.api.Auth
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.firebase.auth.FacebookAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.android.synthetic.main.activity_login.*
+import java.security.MessageDigest
+import java.security.NoSuchAlgorithmException
+import java.util.*
+
 
 class login : AppCompatActivity() {
     //TODO autenticacion
@@ -21,6 +37,8 @@ class login : AppCompatActivity() {
     var googleSignInClient:GoogleSignInClient?=null
 
     var RC_SIGN_IN=4443
+
+    var callbackManager:CallbackManager?=null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,6 +54,10 @@ class login : AppCompatActivity() {
         btnLoginGoogle.setOnClickListener {
             googleLogin()
         }
+        //Login con Facebook
+        btnLoginFacebook.setOnClickListener {
+            facebookLogin()
+        }
 
         //Configuracion de login con Google
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -44,7 +66,10 @@ class login : AppCompatActivity() {
             .build()
 
         googleSignInClient= GoogleSignIn.getClient(this,gso)
+
+        callbackManager= CallbackManager.Factory.create()
     }
+
 
     //TODO Autenticacion Correo y Contraseña (Validaciones)
 
@@ -98,6 +123,9 @@ class login : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
+        //Requerido para login con facebook
+        callbackManager?.onActivityResult(requestCode,resultCode,data)
+        //Para login con google
         if(requestCode==RC_SIGN_IN){
              var result = Auth.GoogleSignInApi.getSignInResultFromIntent(data)
             if(result.isSuccess){
@@ -124,7 +152,41 @@ class login : AppCompatActivity() {
             }
     }
 
+    //TODO login con Facebook
+    fun facebookLogin(){
+        LoginManager.getInstance()
+            .logInWithReadPermissions(this,Arrays.asList("public_profile","email"))
+        LoginManager.getInstance().registerCallback(callbackManager,object :FacebookCallback<LoginResult>{
+            override fun onSuccess(result: LoginResult?) {
+                //Si funciona
+                permitirAccesoAlToken(result?.accessToken)
+            }
 
+            override fun onCancel() {
+                //nada
+            }
+
+            override fun onError(error: FacebookException?) {
+                //nada
+            }
+
+        })
+    }
+
+    fun permitirAccesoAlToken(token: AccessToken?){
+        var credencialFacebook=FacebookAuthProvider.getCredential(token?.token!!)
+        auth?.signInWithCredential(credencialFacebook)
+            ?.addOnCompleteListener {
+                    task->
+                if(task.isSuccessful){
+                    //Login
+                    irPaginaPrincipal(task.result?.user)
+                }else{
+                    //Mensaje de error
+                    Toast.makeText(this, task.exception?.message,Toast.LENGTH_SHORT).show()
+                }
+            }
+    }
 
     //TODO ir a la pagina de Principal
     fun irPaginaPrincipal(user:FirebaseUser?){
